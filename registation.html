@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recovery Disk | Unified Portal</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* NEON ROYAL DARK THEME */
+        :root { 
+            --gold: #d4af37; 
+            --primary: #00f2fe; 
+            --dark: #050505; 
+            --error: #ff4b2b;
+            --success: #2ecc71;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background: var(--dark); color: #fff; overflow-x: hidden; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+
+        /* 3D BACKGROUND */
+        #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+
+        /* GLASSMORPHIC CONTAINER */
+        .main-wrapper { 
+            width: 100%; max-width: 550px; 
+            background: rgba(10, 10, 10, 0.85); 
+            backdrop-filter: blur(25px); 
+            padding: 40px; 
+            border-radius: 24px; 
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+            overflow-y: auto; max-height: 95vh;
+            animation: slideUp 0.8s ease;
+        }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* LOGO INTEGRATION */
+        .portal-logo { width: 120px; display: block; margin: 0 auto 15px; filter: drop-shadow(0 0 10px var(--primary)); }
+        h1 { color: var(--gold); text-align: center; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; font-size: 1.5rem; }
+        h2 { color: #888; text-align: center; font-size: 13px; margin-bottom: 30px; letter-spacing: 1px; }
+
+        /* SELECTION BOXES */
+        .selection-box button { 
+            width: 100%; margin: 12px 0; padding: 18px; 
+            font-weight: 800; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); 
+            cursor: pointer; background: rgba(255,255,255,0.05); color: var(--primary); 
+            transition: 0.3s; text-transform: uppercase;
+        }
+        .selection-box button:hover { background: var(--primary); color: #000; box-shadow: 0 0 20px rgba(0,242,254,0.4); }
+
+        input, select, textarea { 
+            width: 100%; padding: 14px; margin-bottom: 15px; border-radius: 12px; 
+            border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.4); 
+            color: #fff; font-size: 14px; outline: none; transition: 0.3s;
+        }
+        input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 10px rgba(0,242,254,0.2); }
+
+        /* TOGGLE GROUP */
+        .toggle-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        .toggle-group button { 
+            flex: 1; padding: 14px; border-radius: 12px; border: none; 
+            font-weight: 800; color: white; cursor: pointer; opacity: 0.5; transition: 0.3s; 
+        }
+        .active-btn { opacity: 1 !important; transform: scale(1.05); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+
+        .btn-submit { 
+            width: 100%; padding: 16px; border-radius: 12px; border: none; 
+            background: linear-gradient(45deg, var(--primary), var(--gold)); 
+            color: #000; font-weight: 900; cursor: pointer; margin-top: 10px;
+            text-transform: uppercase; letter-spacing: 1px; transition: 0.4s;
+        }
+        .btn-submit:hover { filter: brightness(1.2); box-shadow: 0 0 30px rgba(212,175,55,0.3); }
+    </style>
+</head>
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="main-wrapper">
+        <img src="https://i.ibb.co/VYd8W6Z/RECOVERY-DISK-LOGO.png" alt="Recovery Disk Logo" class="portal-logo">
+        
+        <div id="selectorSection" class="selection-box">
+            <h1>Recovery Disk</h1>
+            <h2>Institutional Access Portal</h2>
+            <button onclick="showSection('studentForm')"><i class="fas fa-user-graduate"></i> Student Access</button>
+            <button onclick="showSection('teacherForm')"><i class="fas fa-chalkboard-teacher"></i> Faculty Access</button>
+        </div>
+
+        <div id="studentForm" style="display:none;">
+            <h1>Student Registry</h1>
+            <input type="text" id="s_name" placeholder="Full Legal Name">
+            <input type="text" id="s_roll" placeholder="Roll Number (e.g. 24SS1A6244)">
+            <input type="tel" id="s_phone" placeholder="Contact Number">
+            <input type="email" id="s_email" placeholder="Institutional Email">
+            <select id="s_dept">
+                <option value="CSE">CSE (Cyber Security)</option>
+                <option value="EEE">EEE</option>
+                <option value="IT">IT</option>
+            </select>
+            <button class="btn-submit" onclick="handleAuth('Student')">Deploy Student ID</button>
+        </div>
+
+        <div id="teacherForm" style="display:none;">
+            <h1>Faculty Registry</h1>
+            <input type="text" id="t_name" placeholder="Full Name">
+            <select id="t_designation">
+                <option value="Assistant Professor">Assistant Professor</option>
+                <option value="HOD">HOD</option>
+            </select>
+            <input type="email" id="t_email" placeholder="Official Email">
+            <input type="tel" id="t_phone" placeholder="Phone Number">
+            <button class="btn-submit" onclick="handleAuth('Teacher')">Deploy Faculty ID</button>
+        </div>
+
+        <div id="reportSection" style="display:none;">
+            <h1 id="reportTitle">New Report</h1>
+            <div class="toggle-group">
+                <button type="button" class="active-btn" id="lostBtn" style="background:var(--error);" onclick="setType('Lost')">LOST</button>
+                <button type="button" id="foundBtn" style="background:var(--success);" onclick="setType('Found')">FOUND</button>
+            </div>
+
+             <form id="unifiedReportForm">
+                <select id="itemName" required>
+                    <option value="">-- Asset Category --</option>
+                    <option>Laptop / Tablet</option>
+                    <option>Mobile Device</option>
+                    <option>Institutional ID Card</option>
+                    <option>Calculators / Electronics</option>
+                </select>
+
+                <select id="location" required>
+                    <option value="">-- Last Known Location --</option>
+                    <option>CSE Block - Ground Floor</option>
+                    <option>Central Library</option>
+                    <option>Canteen Area</option>
+                    <option>Sports Complex</option>
+                </select>
+
+                <select id="brand">
+                    <option value="Not Specified">-- Physical Color/Brand --</option>
+                    <option>Black / Dark Grey</option>
+                    <option>Silver / Metallic</option>
+                </select>
+
+                <label style="color:var(--primary); font-size: 11px;">Upload Evidence Photo:</label>
+                <input type="file" id="itemImage" accept="image/*" style="background:rgba(255,255,255,0.05); padding:10px;">
+                
+                <textarea id="description" placeholder="Any unique identification marks (Serial No, Stickers, etc.)..."></textarea>
+
+                <input type="text" id="verified_id" readonly style="background:rgba(0,242,254,0.05); color:var(--primary); border: 1px dashed var(--primary);">
+                <button type="submit" class="btn-submit" id="submitBtn">INSTANT CLOUD UPLINK</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        /* 1. 3D BACKGROUND ENGINE */
+        const canvas = document.getElementById('bg-canvas');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        const geometry = new THREE.BufferGeometry();
+        const vertices = [];
+        for (let i = 0; i < 5000; i++) {
+            vertices.push(THREE.MathUtils.randFloatSpread(2000), THREE.MathUtils.randFloatSpread(2000), THREE.MathUtils.randFloatSpread(2000));
+        }
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        const material = new THREE.PointsMaterial({ color: 0x00f2fe, size: 1, transparent: true, opacity: 0.5 });
+        const points = new THREE.Points(geometry, material);
+        scene.add(points);
+        camera.position.z = 500;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            points.rotation.y += 0.001;
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        /* 2. FIREBASE CONFIG */
+        const firebaseConfig = {
+            apiKey: "AiZaSyDg1bSCdLj2Em-1WhLInzHevEGT4apSM7U",
+            authDomain: "first-rtrp.firebaseapp.com",
+            projectId: "first-rtrp",
+            storageBucket: "first-rtrp.firebasestorage.app",
+            messagingSenderId: "708933730040",
+            appId: "1:708933730040:web:f2ed464143a28f8967c50d"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+
+        let reportType = "Lost";
+        let userContact = "";
+        let userEmail = "";
+
+        function showSection(id) {
+            document.getElementById('selectorSection').style.display = 'none';
+            document.getElementById(id).style.display = 'block';
+        }
+
+        async function handleAuth(role) {
+            const id = (role === 'Student') ? document.getElementById('s_roll').value : document.getElementById('t_email').value;
+            userEmail = (role === 'Student') ? document.getElementById('s_email').value : document.getElementById('t_email').value;
+            userContact = (role === 'Student') ? document.getElementById('s_phone').value : document.getElementById('t_phone').value;
+            
+            const registrationData = {
+                name: (role === 'Student') ? document.getElementById('s_name').value : document.getElementById('t_name').value,
+                id: id,
+                email: userEmail,
+                phone: userContact,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            const col = role === 'Student' ? "student_registrations" : "teacher_registrations";
+            await Promise.all([
+                db.collection("users").doc(id).set(registrationData),
+                db.collection(col).doc(id).set(registrationData)
+            ]);
+            
+            document.getElementById('verified_id').value = "VERIFIED ID: " + id;
+            document.getElementById('studentForm').style.display = 'none';
+            document.getElementById('teacherForm').style.display = 'none';
+            document.getElementById('reportSection').style.display = 'block';
+        }
+
+        function setType(type) {
+            reportType = type;
+            document.getElementById('lostBtn').classList.toggle('active-btn', type === 'Lost');
+            document.getElementById('foundBtn').classList.toggle('active-btn', type === 'Found');
+        }
+
+        document.getElementById('unifiedReportForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const file = document.getElementById('itemImage').files[0];
+            
+            btn.disabled = true;
+            btn.innerText = "UPLINKING TO CLOUD...";
+
+            const reportData = {
+                itemName: document.getElementById('itemName').value,
+                location: document.getElementById('location').value,
+                brand: document.getElementById('brand').value,
+                description: document.getElementById('description').value || "None",
+                itemPhoto: "Processing...", 
+                user_id: document.getElementById('verified_id').value.replace("VERIFIED ID: ", ""),
+                phone: userContact,
+                email: userEmail,
+                type: reportType,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            const collection = reportType === "Lost" ? "lost_reports" : "found_reports";
+            const docRef = await db.collection(collection).add(reportData);
+
+            alert("Institutional Alert Deployed Successfully!");
+
+            if(file) {
+                storage.ref(`evidence/${docRef.id}`).put(file).then(async (snap) => {
+                    const url = await snap.ref.getDownloadURL();
+                    await docRef.update({ itemPhoto: url });
+                });
+            }
+            location.reload();
+        };
+    </script>
+</body>
+</html>

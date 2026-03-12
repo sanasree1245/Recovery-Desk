@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RECOVERY DISK | Private Dashboard</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <style>
+        :root { 
+            --gold: #d4af37; 
+            --primary: #00f2fe;
+            --bg: #050505; 
+            --glass: rgba(255, 255, 255, 0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background: var(--bg); color: #fff; overflow-x: hidden; min-height: 100vh; }
+
+        /* 3D BACKGROUND */
+        #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+
+        /* GATEWAY OVERLAY */
+        #passGate { 
+            position: fixed; top:0; left:0; width:100%; height:100%; 
+            background: rgba(0,0,0,0.9); z-index: 99999; 
+            display: flex; align-items:center; justify-content:center;
+            backdrop-filter: blur(15px);
+        }
+        .gate-box { 
+            background: rgba(10, 10, 10, 0.8); padding: 40px; border-radius: 20px; 
+            border: 1px solid var(--gold); text-align: center;
+            box-shadow: 0 0 40px rgba(212, 175, 55, 0.2);
+        }
+        .gate-box input { 
+            padding: 14px; margin-bottom: 20px; border-radius: 8px; 
+            border: 1px solid #333; background: #000; color: var(--gold);
+            text-align: center; width: 250px; outline: none;
+        }
+        .btn-unlock { 
+            padding: 12px 30px; background: var(--gold); border: none; 
+            font-weight: 900; cursor: pointer; border-radius: 8px; 
+            text-transform: uppercase; transition: 0.3s;
+        }
+        .btn-unlock:hover { transform: scale(1.05); filter: brightness(1.2); }
+
+        /* DASHBOARD CONTENT */
+        #adminContent { padding: 30px 5%; animation: fadeIn 1s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .header-bar { 
+            background: rgba(26, 26, 26, 0.7); padding: 25px; border-radius: 15px; 
+            display: flex; justify-content: space-between; align-items: center; 
+            border-bottom: 2px solid var(--gold); margin-bottom: 40px; 
+            backdrop-filter: blur(10px); position: relative;
+        }
+
+        .admin-badge { text-align: right; margin-right: 20px; }
+        .admin-badge b { color: var(--gold); font-size: 14px; display: block; letter-spacing: 1px; }
+        .admin-badge span { color: #888; font-size: 11px; text-transform: uppercase; }
+
+        /* CARDS & GRIDS */
+        .card { 
+            background: rgba(255, 255, 255, 0.03); padding: 25px; border-radius: 15px; 
+            margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.08);
+            backdrop-filter: blur(5px);
+        }
+        
+        .match-card { 
+            background: rgba(0, 242, 254, 0.05); padding: 20px; border-radius: 12px; 
+            margin-bottom: 15px; border-left: 5px solid var(--gold); 
+            transition: 0.3s;
+        }
+        .match-card:hover { background: rgba(0, 242, 254, 0.1); transform: translateX(10px); }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+        .registry-item {
+            background: rgba(0,0,0,0.4); padding: 15px; border-radius: 10px; 
+            margin-bottom: 12px; border-left: 4px solid #444; font-size: 13px;
+            transition: 0.3s;
+        }
+        .registry-item:hover { border-left-width: 8px; background: rgba(255,255,255,0.02); }
+
+        .btn-logout { background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <div id="passGate">
+        <div class="gate-box">
+            <h2 style="color: var(--gold); margin-bottom: 10px; letter-spacing: 2px;">ADMIN GATEWAY</h2>
+            <p style="color: #666; font-size: 12px; margin-bottom: 20px;">Verification Required for Batch 7 Access</p>
+            <input type="password" id="entryKey" placeholder="Enter Pass Key">
+            <br>
+            <button class="btn-unlock" onclick="unlock()">Authorize Access</button>
+        </div>
+    </div>
+
+    <div id="adminContent" style="display: none;">
+        <div class="header-bar">
+            <h1>RECOVERY DISK | <span style="color:var(--gold)">MAIN CONTROL</span></h1>
+            
+            <div style="display: flex; align-items: center;">
+                <div class="admin-badge">
+                    <b id="cornerName">---</b>
+                    <span id="cornerID">ID: ---</span>
+                </div>
+                <button class="btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="color:var(--gold); margin-bottom:20px; font-size: 1.2rem; letter-spacing: 1px;">
+                <i class="fas fa-microchip"></i> Institutional Similarity Engine (75%+)
+            </h3>
+            <div id="matchList">Scanning cloud database...</div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="card"><h3 style="color:#ff4b2b; margin-bottom:15px;">Lost Registry</h3><div id="lostList"></div></div>
+            <div class="card"><h3 style="color:#2ecc71; margin-bottom:15px;">Found Registry</h3><div id="foundList"></div></div>
+        </div>
+    </div>
+
+    <script>
+        /* THREE.JS BACKGROUND ENGINE */
+        const canvas = document.getElementById('bg-canvas');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        const geometry = new THREE.BufferGeometry();
+        const vertices = [];
+        for (let i = 0; i < 6000; i++) {
+            vertices.push(THREE.MathUtils.randFloatSpread(2000), THREE.MathUtils.randFloatSpread(2000), THREE.MathUtils.randFloatSpread(2000));
+        }
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        const material = new THREE.PointsMaterial({ color: 0x00f2fe, size: 1.2, transparent: true, opacity: 0.5 });
+        const points = new THREE.Points(geometry, material);
+        scene.add(points);
+        camera.position.z = 500;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            points.rotation.y += 0.0008;
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        /* FIREBASE & DASHBOARD LOGIC */
+        const firebaseConfig = { apiKey: "AiZaSyDg1bSCdLj2Em-1WhLInzHevEGT4apSM7U", projectId: "first-rtrp" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        function unlock() {
+            const entered = document.getElementById('entryKey').value;
+            const required = localStorage.getItem("requiredPassKey");
+
+            if (entered === required && required !== null) {
+                document.getElementById('passGate').style.display = 'none';
+                document.getElementById('adminContent').style.display = 'block';
+
+                document.getElementById('cornerName').innerText = localStorage.getItem("tempAdminName");
+                document.getElementById('cornerID').innerText = "ID: " + localStorage.getItem("tempAdminID");
+
+                loadDashboard();
+            } else {
+                alert("Invalid Pass Key. Access Denied.");
+            }
+        }
+
+        function loadDashboard() {
+            syncData("lost_reports", "lostList", "#ff4b2b");
+            syncData("found_reports", "foundList", "#2ecc71");
+            runSimilarity();
+        }
+
+        function syncData(col, divId, color) {
+            db.collection(col).orderBy("timestamp", "desc").onSnapshot(snap => {
+                const div = document.getElementById(divId);
+                div.innerHTML = "";
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    div.innerHTML += `<div class="registry-item" style="border-left-color:${color}">
+                        <strong style="color:var(--gold);">${d.itemName}</strong><br>
+                        Roll: ${d.user_id} | Location: ${d.location}
+                    </div>`;
+                });
+            });
+        }
+
+        async function runSimilarity() {
+            const lostSnap = await db.collection("lost_reports").get();
+            const foundSnap = await db.collection("found_reports").get();
+            const container = document.getElementById('matchList');
+            container.innerHTML = "";
+
+            lostSnap.forEach(lostDoc => {
+                const lost = lostDoc.data();
+                foundSnap.forEach(foundDoc => {
+                    const found = foundDoc.data();
+                    let score = 0;
+                    if (lost.itemName === found.itemName) score += 25;
+                    if (lost.location === found.location) score += 25;
+                    if (lost.brand === found.brand) score += 25;
+                    if (lost.description.toLowerCase().includes(found.description.toLowerCase())) score += 25;
+
+                    if (score >= 75) {
+                        container.innerHTML += `<div class="match-card">
+                            <strong style="color:var(--gold)">${lost.itemName} Correlation Found (${score}% Match)</strong>
+                            <p style="font-size:12px; color:#aaa; margin-bottom:10px;">Owner: ${lost.user_id} | Finder: ${found.user_id}</p>
+                            <button onclick="openReport('${lost.user_id}', '${found.user_id}', '${lost.itemName}')" 
+                                style="background:var(--gold); border:none; padding:8px 15px; border-radius:6px; font-weight:bold; cursor:pointer;">Initiate Recovery Protocol</button>
+                        </div>`;
+                    }
+                });
+            });
+        }
+
+        function openReport(oId, fId, item) {
+            window.location.href = `report.html?ownerId=${oId}&finderId=${fId}&item=${encodeURIComponent(item)}`;
+        }
+
+        function logout() { localStorage.clear(); window.location.href = "sign.html"; }
+    </script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RECOVERY DISK | Admin Sign-In</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #00f2fe;
+            --gold: #d4af37;
+            --dark-bg: #050505;
+            --glass: rgba(255, 255, 255, 0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background: var(--dark-bg); color: #fff; overflow: hidden; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+
+        /* 3D STARFIELD BACKGROUND */
+        #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+
+        /* GLASSMORPHISM CARD */
+        .card { 
+            background: rgba(10, 10, 10, 0.85); 
+            display: flex; width: 950px; height: 600px; 
+            border-radius: 24px; overflow: hidden; 
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            backdrop-filter: blur(25px);
+            box-shadow: 0 0 60px rgba(0, 0, 0, 0.8);
+            transform: perspective(1500px) rotateY(-5deg);
+            transition: 0.6s ease;
+        }
+        .card:hover { transform: perspective(1500px) rotateY(0deg); border-color: var(--primary); }
+
+        .form-side { width: 50%; padding: 60px; display: flex; flex-direction: column; justify-content: center; }
+        .brand-tag { color: var(--primary); font-weight: 800; font-size: 11px; letter-spacing: 4px; margin-bottom: 8px; text-transform: uppercase; }
+        h1 { color: var(--gold); font-size: 34px; margin-bottom: 5px; font-weight: 900; letter-spacing: 1px; }
+        .sub-text { color: #666; font-size: 13px; margin-bottom: 35px; }
+
+        /* NEON INPUTS */
+        .input-group { margin-bottom: 15px; }
+        .input-box { 
+            width: 100%; padding: 15px; 
+            background: rgba(255, 255, 255, 0.03); 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            border-radius: 14px; outline: none; color: #fff;
+            transition: 0.4s; font-size: 14px;
+        }
+        .input-box:focus { border-color: var(--primary); background: rgba(0, 242, 254, 0.05); box-shadow: 0 0 20px rgba(0, 242, 254, 0.2); }
+        
+        .readonly { border: 1px dashed var(--gold); background: rgba(212, 175, 55, 0.03); color: #aaa; cursor: not-allowed; }
+
+        .btn-deploy { 
+            width: 100%; padding: 18px; 
+            background: linear-gradient(45deg, var(--primary), var(--gold)); 
+            color: #000; border: none; border-radius: 14px; 
+            font-weight: 900; cursor: pointer; margin-top: 15px; 
+            text-transform: uppercase; letter-spacing: 2px;
+            transition: 0.4s;
+        }
+        .btn-deploy:hover { transform: scale(1.03); box-shadow: 0 0 35px rgba(212, 175, 55, 0.4); filter: brightness(1.2); }
+
+        /* IMAGE SIDE WITH FIXED URL */
+        .img-side { 
+            width: 50%; background: rgba(0, 242, 254, 0.02); 
+            display: flex; align-items: center; justify-content: center; 
+            border-left: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+        }
+        .img-side img { 
+            width: 80%; 
+            border-radius: 20px;
+            filter: drop-shadow(0 0 30px var(--primary)); 
+            transition: 0.5s;
+        }
+        .img-side:hover img { transform: scale(1.05); filter: drop-shadow(0 0 50px var(--primary)); }
+    </style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<div class="card">
+    <div class="form-side">
+        <div class="brand-tag">SECURE COMMAND</div>
+        <h1>Admin Gateway</h1>
+        <p class="sub-text">Initialize Institutional Authentication</p>
+        
+        <form id="regForm">
+            <div class="input-group">
+                <input type="text" id="roll" placeholder="Roll Number (e.g. 24SS1A6220)" class="input-box" onkeyup="fetchExcel()">
+            </div>
+            <div class="input-group">
+                <input type="text" id="name" placeholder="Auto-filled Name" class="input-box readonly" readonly>
+            </div>
+            <div class="input-group">
+                <input type="email" id="mail" placeholder="Auto-filled Email" class="input-box readonly" readonly>
+            </div>
+            <div class="input-group">
+                <input type="password" id="pass" placeholder="Establish Pass Key" class="input-box" required>
+            </div>
+            <button type="submit" class="btn-deploy">Deploy Security Key</button>
+        </form>
+    </div>
+    <div class="img-side">
+        <img src="https://kommodo.ai/i/Hp7DXWfSV4KHQPWjv2Ju" alt="Security Terminal">
+    </div>
+</div>
+
+<script>
+    /* THREE.JS BACKGROUND */
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('bg-canvas'), antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const geometry = new THREE.BufferGeometry();
+    const vertices = [];
+    for (let i = 0; i < 6000; i++) {
+        vertices.push(THREE.MathUtils.randFloatSpread(2000), THREE.MathUtils.randFloatSpread(2000), THREE.MathUtils.randFloatSpread(2000));
+    }
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    const material = new THREE.PointsMaterial({ color: 0x00f2fe, size: 1.2, transparent: true, opacity: 0.5 });
+    const points = new THREE.Points(geometry, material);
+    scene.add(points);
+    camera.position.z = 500;
+
+    function animate() {
+        requestAnimationFrame(animate);
+        points.rotation.y += 0.001;
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    /* FIREBASE LOGIC */
+    const firebaseConfig = { apiKey: "AiZaSyDg1bSCdLj2Em-1WhLInzHevEGT4apSM7U", projectId: "first-rtrp" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const dbBackup = [
+        { "roll": "24SS1A6220", "name": "GOKINAPALLI KARTHIK", "email": "jntuhuces24ss1a6220@gmail.com" }, 
+        { "roll": "24SS1A6244", "name": "MEDABOINA SANASREE", "email": "jntuhuces24ss1a6244@gmail.com" }
+    ];
+
+    function fetchExcel() {
+        const val = document.getElementById('roll').value.trim();
+        const user = dbBackup.find(s => s.roll === val);
+        if (user) {
+            document.getElementById('name').value = user.name;
+            document.getElementById('mail').value = user.email;
+        }
+    }
+
+    document.getElementById('regForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const roll = document.getElementById('roll').value;
+        const name = document.getElementById('name').value;
+        const key = document.getElementById('pass').value;
+
+        localStorage.setItem("requiredPassKey", key);
+        localStorage.setItem("tempAdminName", name);
+        localStorage.setItem("tempAdminID", roll);
+
+        db.collection("users").doc(roll).set({ name, roll, email: document.getElementById('mail').value, passKey: key })
+        .then(() => {
+            alert("Security Protocol Established. Entering Admin Control.");
+            window.location.href = "admin.html";
+        });
+    });
+</script>
+</body>
+</html>
