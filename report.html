@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RECOVERY DISK | Cross-Notification</title>
+    <title>RECOVERY DESK | Cross-Notification</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -173,10 +173,10 @@
 
         function triggerCrossEmails() {
             // Detailed automated cross-exchange content
-            const crossBody = `RECOVERY DISK INSTITUTIONAL ALERT\n\nA similarity match has been confirmed for the item: ${item}\n\n[OWNER DETAILS]\nRoll: ${oId}\nName: ${ownerData.name}\nEmail: ${ownerData.email}\n\n[FINDER DETAILS]\nRoll: ${fId}\nName: ${finderData.name}\nEmail: ${finderData.email}\n\nPlease proceed to the Admin Office for asset handover.`;
+            const crossBody = `RECOVERY DESK INSTITUTIONAL ALERT\n\nA similarity match has been confirmed for the item: ${item}\n\n[OWNER DETAILS]\nRoll: ${oId}\nName: ${ownerData.name}\nEmail: ${ownerData.email}\n\n[FINDER DETAILS]\nRoll: ${fId}\nName: ${finderData.name}\nEmail: ${finderData.email}\n\nPlease proceed to the Admin Office for asset handover.`;
 
             // Prepare the notification bridge
-            const mailLink = `mailto:${ownerData.email}?cc=${finderData.email}&subject=${encodeURIComponent("RECOVERY DISK | Match Confirmed: " + item)}&body=${encodeURIComponent(crossBody)}`;
+            const mailLink = `mailto:${ownerData.email}?cc=${finderData.email}&subject=${encodeURIComponent("RECOVERY DESK | Match Confirmed: " + item)}&body=${encodeURIComponent(crossBody)}`;
             
             window.location.href = mailLink;
             alert(`Broadcasting Cross-Alert for ${oId} and ${fId}`);
